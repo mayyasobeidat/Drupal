@@ -1,0 +1,8 @@
+sso:
+  js:
+    js/i18n_sso.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    - core/once

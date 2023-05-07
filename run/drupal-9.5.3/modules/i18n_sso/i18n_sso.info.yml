@@ -1,0 +1,14 @@
+name: 'Internationalization Single Sign-On'
+description: 'Provides sso functionality over multi-lang multi-domain configuration.'
+type: module
+core_version_requirement: ^9.2 || ^10
+package: 'Multilingual'
+dependencies:
+  - drupal:language
+  - drupal:system
+  - drupal:user
+
+# Information added by Drupal.org packaging script on 2022-05-04
+version: '8.x-1.3'
+project: 'i18n_sso'
+datestamp: 1651675259

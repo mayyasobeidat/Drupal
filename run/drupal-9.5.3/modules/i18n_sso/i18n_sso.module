@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Contains hook implementations for i18n_sso module.
+ */
+
+declare(strict_types = 1);
+
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Adds a javascript library and js settings to log user in if the user is
+ * already logged in on the main website (default language website url).
+ */
+function i18n_sso_preprocess_page(array &$variables) : void {
+  /** @var \Symfony\Component\HttpFoundation\Request|null $current_request */
+  $current_request = \Drupal::requestStack()->getCurrentRequest();
+  /** @var \Psr\Http\Message\ResponseInterface|null $exception */
+  $exception = $current_request ? $current_request->attributes->get('exception') : NULL;
+  $current_path = \Drupal::service('path.current')->getPath();
+  if ($exception && $exception->getStatusCode() == '403' && $current_path !== '/user/logout') {
+    $defaultLanguage = \Drupal::languageManager()->getDefaultLanguage();
+    $currentLanguage = \Drupal::languageManager()->getCurrentLanguage();
+
+    // If user is anonymous and we are not on default language, add our JS.
+    if ($currentLanguage->getId() != $defaultLanguage->getId() && \Drupal::currentUser()->isAnonymous()) {
+      $variables['#attached']['library'][] = 'i18n_sso/sso';
+      $variables['#attached']['drupalSettings']['i18n_sso'] = [
+        'ssoUrl' => Url::fromRoute('i18n_sso.get_token', [], [
+          'absolute' => TRUE,
+          'language' => $defaultLanguage,
+        ])->toString(),
+        'ssoLogin' => Url::fromRoute('i18n_sso.login', [], ['absolute' => TRUE])->toString(),
+        'waiting' => t('We are trying to log you in automatically. Please wait while we are checking your credentials.'),
+        'wrapperSelector' => \Drupal::getContainer()->getParameter('i18n_sso.wrapper_selector'),
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_user_logout().
+ *
+ * Removes all tokens for given account.
+ */
+function i18n_sso_user_logout(AccountProxyInterface $account) : void {
+  \Drupal::service('i18n_sso.token')->deleteUserTokens($account->id());
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Deletes expired tokens from database.
+ */
+function i18n_sso_cron() : void {
+  \Drupal::service('i18n_sso.token')->deleteExpiredTokens();
+}
